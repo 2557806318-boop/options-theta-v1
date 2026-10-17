@@ -1,0 +1,502 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>Options Theta · ETH 时间价值纸盘</title>
+    <style>
+      :root {
+        color-scheme: dark;
+        --bg: #101a20;
+        --panel: #17262d;
+        --ink: #e8f0ee;
+        --muted: #a5babd;
+        --line: #30434a;
+        --green: #8be0bf;
+        --red: #ffaaa0;
+        --amber: #ffd28b;
+      }
+      * {
+        box-sizing: border-box;
+      }
+      body {
+        margin: 0;
+        background: var(--bg);
+        color: var(--ink);
+        font:
+          15px/1.6 system-ui,
+          "Microsoft YaHei",
+          sans-serif;
+      }
+      main {
+        max-width: 1480px;
+        margin: auto;
+        padding: 32px;
+      }
+      header {
+        display: flex;
+        justify-content: space-between;
+        gap: 20px;
+        align-items: center;
+      }
+      h1 {
+        font-size: 28px;
+        margin: 0;
+      }
+      h2 {
+        font-size: 18px;
+        margin: 0 0 14px;
+      }
+      p {
+        margin: 8px 0;
+        color: var(--muted);
+      }
+      .tag {
+        border: 1px solid var(--green);
+        color: var(--green);
+        padding: 6px 14px;
+        border-radius: 4px;
+      }
+      .grid {
+        display: grid;
+        grid-template-columns: repeat(4, 1fr);
+        gap: 16px;
+        margin: 24px 0;
+      }
+      .card,
+      section {
+        background: var(--panel);
+        border: 1px solid var(--line);
+        border-radius: 8px;
+        padding: 20px;
+      }
+      .card small {
+        color: var(--muted);
+      }
+      .value {
+        font-size: 28px;
+        font-variant-numeric: tabular-nums;
+        margin-top: 8px;
+      }
+      .two {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 18px;
+        margin-bottom: 18px;
+      }
+      section {
+        margin-bottom: 18px;
+        overflow: auto;
+      }
+      table {
+        width: 100%;
+        border-collapse: collapse;
+        text-align: left;
+        white-space: nowrap;
+      }
+      th,
+      td {
+        padding: 10px;
+        border-bottom: 1px solid var(--line);
+        font-variant-numeric: tabular-nums;
+      }
+      th {
+        color: var(--muted);
+        font-weight: 500;
+      }
+      code {
+        color: var(--amber);
+        overflow-wrap: anywhere;
+      }
+      .muted {
+        color: var(--muted);
+      }
+      .warn {
+        color: var(--amber);
+      }
+      .bad {
+        color: var(--red);
+      }
+      .good {
+        color: var(--green);
+      }
+      #reasons {
+        white-space: pre-wrap;
+        overflow-wrap: anywhere;
+        font-size: 16px;
+      }
+      .facts {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 8px;
+      }
+      .facts span {
+        color: var(--muted);
+      }
+      footer {
+        color: var(--muted);
+      }
+      @media (max-width: 900px) {
+        .grid {
+          grid-template-columns: 1fr 1fr;
+        }
+        .two {
+          grid-template-columns: 1fr;
+        }
+        main {
+          padding: 16px;
+        }
+        header {
+          align-items: flex-start;
+          flex-direction: column;
+        }
+      }
+      @media (max-width: 480px) {
+        .grid {
+          grid-template-columns: 1fr;
+        }
+        .value {
+          font-size: 24px;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <main>
+      <header>
+        <div>
+          <h1>ETH 时间价值纸盘</h1>
+          <p>options-theta-v1 · 有保护腿铁鹰 · BTC 仅观察</p>
+        </div>
+        <div class="tag">PAPER ONLY · 无实盘接口</div>
+      </header>
+      <p id="connection" role="status">连接本机 SSH 转发…</p>
+      <div class="grid">
+        <div class="card">
+          <small>纸盘可平仓权益 / USDT</small>
+          <div id="equity" class="value">—</div>
+          <p id="capital">—</p>
+        </div>
+        <div class="card">
+          <small>已实现费后盈亏 / USDT</small>
+          <div id="pnl" class="value">—</div>
+          <p id="fees">—</p>
+        </div>
+        <div class="card">
+          <small>当前组合状态</small>
+          <div id="state" class="value">—</div>
+          <p id="activity">—</p>
+        </div>
+        <div class="card">
+          <small>真实期权账户（只读）</small>
+          <div id="real" class="value">—</div>
+          <p>不参与纸盘，不代表卖方权限验证</p>
+        </div>
+      </div>
+      <div class="two">
+        <section>
+          <h2>为什么现在不开仓</h2>
+          <div id="reasons">等待后端状态</div>
+          <p>每秒筛选；风险每100ms计算。无合格组合时空仓是正常结果。</p>
+          <p id="error" class="warn"></p>
+        </section>
+        <section>
+          <h2>冻结试验边界</h2>
+          <div class="facts">
+            <span>入场窗口</span><b>到期前 2–8 小时</b
+            ><span>单组预估最大损失</span><b>权益的 5%</b
+            ><span>逐腿保证金＋保护腿支出</span><b>权益的 30%</b
+            ><span>同时组合 / 每到期尝试</span><b>1 组 / 2 次</b
+            ><span>主动平仓截止</span><b>到期前 1 小时</b>
+          </div>
+          <p>不是时间过去就赚钱；跳空、提前强平和逐腿执行均有风险。</p>
+        </section>
+      </div>
+      <section>
+        <h2>四腿持仓与组合风险</h2>
+        <div id="risk" class="facts"></div>
+        <table>
+          <thead>
+            <tr>
+              <th>合约</th>
+              <th>角色</th>
+              <th>数量</th>
+              <th>入场价格</th>
+              <th>入场手续费</th>
+            </tr>
+          </thead>
+          <tbody id="legs"></tbody>
+        </table>
+        <p id="attribution"></p>
+      </section>
+      <div class="two">
+        <section>
+          <h2>行情与波动状态</h2>
+          <div id="market" class="facts"></div>
+        </section>
+        <section>
+          <h2>审计与运行</h2>
+          <div id="audit" class="facts"></div>
+          <p>
+            控制指令在电报：<code
+              >/options /positions /pnl /risk /latency /pause /resume /setpaper
+              金额</code
+            >
+          </p>
+          <p>修改本金必须空仓，新建账本版本；旧账不清空。</p>
+        </section>
+      </div>
+      <section>
+        <h2>链路延迟（毫秒，持久化采样）</h2>
+        <p>
+          外部 RTT 与本地计算分开；paper.*
+          是模拟等待，绝不是实盘成交延迟。表内为过去24小时中最近最多10万条样本，含启动冷请求；原始统计压缩持久化。行情源延迟受时钟估计误差影响。
+        </p>
+        <table>
+          <thead>
+            <tr>
+              <th>阶段</th>
+              <th>样本</th>
+              <th>p50</th>
+              <th>p95</th>
+              <th>p99</th>
+              <th>最大值</th>
+              <th>最后采样</th>
+            </tr>
+          </thead>
+          <tbody id="latency"></tbody>
+        </table>
+      </section>
+      <section>
+        <h2>当前账本关闭记录</h2>
+        <p>包括建仓失败后的回收损失；未平仓权利金不是已实现盈利。</p>
+        <table>
+          <thead>
+            <tr>
+              <th>关闭时间</th>
+              <th>状态</th>
+              <th>退出原因</th>
+              <th>费后盈亏 U</th>
+              <th>总费用 U</th>
+            </tr>
+          </thead>
+          <tbody id="history"></tbody>
+        </table>
+      </section>
+      <footer>
+        来源：Binance eapi / fstream / ETHUSDT 已完成1分钟K线；纸盘账本：独立
+        MySQL。验收需至少14天及30组完整组合，达标也不会自动开启实盘。
+      </footer>
+    </main>
+    <script>
+      const $ = (id) => document.getElementById(id),
+        num = (n, d = 4) => (n == null ? "—" : Number(n).toFixed(d)),
+        time = (x) => (x ? new Date(x).toLocaleString("zh-CN") : "—");
+      const names = {
+        MANUALLY_PAUSED: "手动暂停新开仓",
+        EXISTING_COMBINATION: "已有组合，禁止重复开仓",
+        OUTSIDE_2_8_HOUR_WINDOW: "不在到期前2–8小时窗口",
+        VOLATILITY_WARMUP: "24小时波动数据尚未完整",
+        VOLATILITY_GAP: "1分钟行情存在缺口",
+        VOLATILITY_SHOCK: "近期波动冲击，停止卖出时间价值",
+        SHORT_DELTA_RANGE: "短腿 Delta 不在0.10–0.25",
+        IV_PREMIUM_INSUFFICIENT: "可成交隐含波动率溢价不足",
+        NET_DELTA_LIMIT: "组合净Delta超限",
+        CREDIT_COST_RATIO: "权利金不足以覆盖执行费用预留",
+        RISK_5_PERCENT: "最小组合也超过5%风险预算",
+        GROSS_MARGIN_30_PERCENT: "普通账户逐腿保证金超过30%",
+        MINIMUM_COMBINATION_UNAFFORDABLE: "平台最小数量下资金不足",
+        BOOK_STALE: "盘口过期或不完整",
+        MARK_STALE: "标记价格过期",
+        STREAM_DISCONNECTED: "行情流断线",
+        DEPTH_INSUFFICIENT: "对应数量没有足够深度",
+        THETA_NOT_POSITIVE: "组合Theta不是正值",
+        NO_MATCHING_FOUR_LEGS: "没有等宽四腿组合",
+        DATABASE_UNCERTAIN: "数据库状态未知，禁止重复操作",
+      };
+      function text(id, s) {
+        $(id).textContent = s;
+      }
+      function facts(id, pairs) {
+        $(id).replaceChildren(
+          ...pairs.flatMap(([k, v]) => {
+            const a = document.createElement("span"),
+              b = document.createElement("b");
+            a.textContent = k;
+            b.textContent = v;
+            return [a, b];
+          }),
+        );
+      }
+      function rows(id, data) {
+        $(id).replaceChildren(
+          ...data.map((row) => {
+            const tr = document.createElement("tr");
+            for (const value of row) {
+              const td = document.createElement("td");
+              td.textContent = value;
+              tr.append(td);
+            }
+            return tr;
+          }),
+        );
+      }
+      let tick = 0;
+      async function refresh() {
+        try {
+          const res = await fetch("/api/status");
+          if (!res.ok) throw Error("API不可用");
+          const s = await res.json(),
+            p = s.paper,
+            g = p.group,
+            v = p.valuation,
+            m = s.market;
+          text(
+            "connection",
+            `已连接 · ${s.phase} · 后端扫描 ${time(s.lastScan)} · 页面每秒刷新`,
+          );
+          text("equity", v.valid ? num(v.equity) : "暂不可估值");
+          text("capital", `初始 ${num(p.initial, 2)}U · 现金 ${num(p.cash)}U`);
+          text("pnl", num(p.realized));
+          $("pnl").className =
+            "value " + (Number(p.realized) < 0 ? "bad" : "good");
+          text("fees", `累计费用 ${num(p.fees)}U`);
+          text("state", g?.status || "空仓");
+          text("activity", p.paused ? "已暂停新开仓" : "纸盘扫描运行");
+          text(
+            "real",
+            num(
+              m.realAccountReadOnly?.assets?.find((x) => x.asset === "USDT")
+                ?.equity,
+            ),
+          );
+          text(
+            "reasons",
+            Object.entries(s.reasons)
+              .map(([k, n]) => (names[k] || k) + ` (${n})`)
+              .join("\n") || "候选正在复核",
+          );
+          text(
+            "error",
+            [
+              s.error ? "最近运行错误（历史）：" + s.error : null,
+              m.error ? "最近行情请求警告（历史）：" + m.error : null,
+              s.databaseUncertain ? "数据库未确认" : null,
+            ]
+              .filter(Boolean)
+              .join(" · "),
+          );
+          facts(
+            "risk",
+            g
+              ? [
+                  ["预估结构最大损失", num(g.candidate.structuralRisk) + "U"],
+                  ["含费用/失败预留风险", num(g.candidate.risk) + "U"],
+                  [
+                    "入场净权利金/最大盈利上界",
+                    num(g.entryNet || g.candidate.netCredit) + "U",
+                  ],
+                  ["可平仓估值盈亏", v.valid ? num(v.pnl) + "U" : "数据过期"],
+                  ["初始保证金", v.valid ? num(v.initialMargin) + "U" : "未知"],
+                  ["净Theta（U/天）", v.valid ? num(v.netTheta) : "未知"],
+                ]
+              : [
+                  ["当前状态", "无持仓"],
+                  ["风险占用", "0U"],
+                ],
+          );
+          rows(
+            "legs",
+            g?.positions?.length
+              ? g.positions.map((x) => [
+                  x.leg.symbol,
+                  x.leg.role,
+                  x.quantity,
+                  x.entryPrice,
+                  x.entryFee,
+                ])
+              : [["当前没有四腿持仓", "—", "—", "—", "—"]],
+          );
+          text(
+            "attribution",
+            g
+              ? `时间价值归因估计 ${num(g.attribution.theta)}U；价格影响估计 ${num(g.attribution.price)}U；波动影响估计 ${num(g.attribution.volatility)}U。均非已赚收益。`
+              : "",
+          );
+          facts("market", [
+            ["ETH 指数", num(m.index.ETHUSDT?.price, 2)],
+            ["BTC 指数（观察）", num(m.index.BTCUSDT?.price, 2)],
+            [
+              "WS market / depth / spot",
+              Object.values(m.connected)
+                .map((x) => (x ? "在线" : "离线"))
+                .join(" / "),
+            ],
+            ["新鲜盘口", `${m.freshBooks}/${m.subscribed}`],
+            [
+              "RV 1h / 6h / 24h",
+              m.volatility.ready
+                ? [m.volatility.rv1h, m.volatility.rv6h, m.volatility.rv24h]
+                    .map((x) => num(x * 100, 2) + "%")
+                    .join(" / ")
+                : "尚未就绪",
+            ],
+            [
+              "Taker/Maker 基础费率",
+              m.feeRate ? `${m.feeRate.taker} / ${m.feeRate.maker}` : "未知",
+            ],
+          ]);
+          facts("audit", [
+            ["账本版本", p.ledger.slice(0, 8)],
+            ["普通行情归档", num(s.archive.bytes / 1024 ** 3, 3) + " / 4GiB"],
+            [
+              "归档状态",
+              s.archive.blocked
+                ? "已达配额，仅保留交易审计"
+                : "采集中，保留30天",
+            ],
+            ["验收观察天数", num(s.acceptance.elapsedDays, 2) + " / 14"],
+            ["完整组合", s.acceptance.closedGroups + " / 30"],
+            ["实盘", "无适配器、无开启按钮"],
+          ]);
+          rows(
+            "latency",
+            Object.entries(s.latency).map(([k, v]) => [
+              k,
+              v.count,
+              num(v.p50, 2),
+              num(v.p95, 2),
+              num(v.p99, 2),
+              num(v.max, 2),
+              time(v.to),
+            ]),
+          );
+          if (tick++ % 10 === 0) {
+            const history = await (await fetch("/api/history")).json();
+            rows(
+              "history",
+              history.length
+                ? history.map((r) => [
+                    time(r.at),
+                    r.kind,
+                    r.payload.group?.exitReason || "结算",
+                    num(r.payload.pnl),
+                    num(r.payload.fees),
+                  ])
+                : [["本账本暂无关闭组合", "—", "—", "—", "—"]],
+            );
+          }
+        } catch (e) {
+          text(
+            "connection",
+            "连接失败：" + e.message + "。检查SSH；下方保留的值可能已过期。",
+          );
+          $("connection").className = "bad";
+        } finally {
+          setTimeout(refresh, 1000);
+        }
+      }
+      refresh();
+    </script>
+  </body>
+</html>

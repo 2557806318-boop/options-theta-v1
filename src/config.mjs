@@ -1,0 +1,60 @@
+export const POLICY = Object.freeze({
+  version: "options-theta-v1",
+  mode: "PAPER_ONLY",
+  asset: "ETH",
+  observe: ["BTC"],
+  initialCapital: "100",
+  riskFraction: "0.05",
+  capitalFraction: "0.30",
+  entryMinHours: 2,
+  entryMaxHours: 8,
+  shortDeltaMin: 0.1,
+  shortDeltaMax: 0.25,
+  maxNetDelta: 0.05,
+  ivRvRatio: 1.2,
+  shockRatio: 1.5,
+  profitFraction: "0.50",
+  stopCreditMultiple: "2",
+  exitDelta: 0.4,
+  exitMarginRatio: "0.50",
+  exitHours: 1,
+  maxAttemptsPerExpiry: 2,
+  maxOpenGroups: 1,
+  riskIntervalMs: 100,
+  scanIntervalMs: 1000,
+  bookMaxAgeMs: 2000,
+  markMaxAgeMs: 10000,
+  indexMaxAgeMs: 3000,
+  archiveDays: 30,
+  archiveQuotaBytes: 4 * 1024 ** 3,
+});
+export function config(env = process.env) {
+  if (env.LIVE_ENABLED === "true")
+    throw Error("THIS_BUILD_HAS_NO_LIVE_ADAPTER");
+  return {
+    policy: POLICY,
+    host: "127.0.0.1",
+    port: Number(env.OPTIONS_PORT || 8892),
+    apiKey: env.BINANCE_API_KEY || "",
+    apiSecret: env.BINANCE_API_SECRET || "",
+    telegramToken: env.TELEGRAM_BOT_TOKEN || "",
+    allowedChats: (env.TELEGRAM_ALLOWED_CHAT_IDS || "")
+      .split(",")
+      .filter(Boolean),
+    telegramEnabled: env.OPTIONS_TELEGRAM_ENABLED !== "false",
+    initialPaused: env.OPTIONS_INITIAL_PAUSED === "true",
+    mysql: {
+      socketPath: env.OPTIONS_MYSQL_SOCKET || "/var/run/mysqld/mysqld.sock",
+      user: env.OPTIONS_MYSQL_USER || "options_theta",
+      password: env.OPTIONS_MYSQL_PASSWORD || "",
+      database: "options_theta",
+      connectionLimit: 4,
+      decimalNumbers: false,
+    },
+    dataDir: env.OPTIONS_DATA_DIR || "data",
+    wsMarket: "wss://fstream.binance.com/market/stream",
+    wsPublic: "wss://fstream.binance.com/public/stream",
+    reportHour: 9,
+    reportMinute: 5,
+  };
+}

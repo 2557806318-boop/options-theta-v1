@@ -1,0 +1,19 @@
+{
+  "name": "options-theta-v1",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "engines": {
+    "node": ">=24"
+  },
+  "scripts": {
+    "start": "node --env-file-if-exists=.env index.mjs",
+    "test": "node --test tests/*.test.mjs",
+    "check": "node --check index.mjs"
+  },
+  "dependencies": {
+    "decimal.js": "10.6.0",
+    "mysql2": "3.24.6",
+    "ws": "8.22.0"
+  }
+}
